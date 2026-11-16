@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TV">
+<meta name="theme-color" content="#0f1115">
+<meta name="robots" content="noindex">
+<title>TV Remote</title>
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root { --bg:#0f1115; --card:#1b1e26; --card2:#262a35; --text:#f2f3f5; --dim:#9aa0ac; --accent:#4c8dff; --ok:#34c759; --bad:#ff6b6b; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.4 -apple-system, system-ui, "Segoe UI", sans-serif; }
+  body { padding: calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 28px); max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 4px; } h2 { font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin: 26px 0 10px; }
+  p { color: var(--dim); margin: 6px 0 14px; }
+  button { font: inherit; color: var(--text); background: var(--card); border: 0; border-radius: 16px; padding: 16px 10px; touch-action: manipulation; }
+  button:active { background: var(--card2); transform: scale(.97); }
+  .hidden { display: none !important; }
+  .primary { background: var(--accent); width: 100%; font-weight: 600; font-size: 19px; padding: 18px; }
+  .apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .apps button { min-height: 64px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 320px; margin: 0 auto; }
+  .pad button { height: 72px; font-size: 24px; } .pad .okbtn { background: var(--card2); font-size: 18px; font-weight: 700; }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; } .row button { font-size: 15px; padding: 14px 4px; }
+  #pin { width: 100%; font: 600 30px/1 inherit; letter-spacing: .4em; text-align: center; padding: 16px; border-radius: 16px; border: 2px solid var(--card2); background: var(--card); color: var(--text); margin-bottom: 12px; }
+  #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%); background: #000c; border: 1px solid #fff3; padding: 10px 18px; border-radius: 14px; font-size: 15px; max-width: 90%; text-align: center; }
+  .note { background: var(--card); border-radius: 16px; padding: 14px 16px; margin-top: 14px; } .note p { margin: 4px 0 10px; }
+  .note a { color: var(--accent); font-weight: 600; } .err { color: var(--bad); }
+  small { color: var(--dim); display: block; margin-top: 22px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <h1>TV Remote</h1>
+  <p>Enter the PIN. This phone will remember it.</p>
+  <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="8" placeholder="PIN">
+  <button class="primary" id="unlock">Unlock</button>
+  <p id="pinErr" class="err hidden">Wrong PIN.</p>
+</div>
+
+<div id="app" class="hidden">
+  <h1>TV Remote</h1>
+  <button class="primary" id="home" style="margin-top:12px">Open home screen</button>
+
+  <div id="trust" class="note hidden">
+    <b>This phone can't reach the TV yet.</b>
+    <p>Check you're on the home Wi-Fi. The first time on each phone, the TV's security certificate must be accepted once:</p>
+    <p>1. <a id="trustLink" target="_blank" rel="noopener">Open this TV address</a><br>2. Tap <b>Show Details</b>, then <b>visit this website</b>, and confirm.<br>3. Come back here and try again.</p>
+  </div>
+
+  <h2>Apps</h2>
+  <div class="apps" id="apps"></div>
+
+  <h2>Remote</h2>
+  <div class="pad">
+    <button data-key="KEY_RETURN" style="font-size:15px">Back</button><button data-key="KEY_UP">&#9650;</button><button data-key="KEY_HOME" style="font-size:15px">Samsung</button>
+    <button data-key="KEY_LEFT">&#9664;</button><button data-key="KEY_ENTER" class="okbtn">OK</button><button data-key="KEY_RIGHT">&#9654;</button>
+    <button data-key="KEY_VOLDOWN" style="font-size:15px">Vol &minus;</button><button data-key="KEY_DOWN">&#9660;</button><button data-key="KEY_VOLUP" style="font-size:15px">Vol +</button>
+  </div>
+  <div class="row">
+    <button data-key="KEY_MUTE">Mute</button><button data-key="KEY_PLAY">Play</button><button data-key="KEY_PAUSE">Pause</button><button data-key="KEY_POWER">Power</button>
+  </div>
+  <p id="remoteNote" class="hidden" style="margin-top:12px"></p>
+  <small>Works only on the home Wi-Fi. <a href="#" id="forget" style="color:inherit">Lock this phone</a></small>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script>
+(function () {
+  'use strict';
+  var TV = '192.168.10.64';
+  var PIN_HASH = '6ca63ff22b5bffd0b86b851c265e981b58a003ade3937643683d764b0b8212ce';   // SHA-256 of salt + PIN
+  var SALT = 'klorian-remote:';
+  var LAUNCHER = 'cALmHoMe01.CalmHome';
+  var APPS = [
+    ['Netflix', '3201907018807'], ['YouTube', '111299001912'], ['Disney+', '3201901017640'],
+    ['HBO Max', '3202301029760'], ['NRK TV', '3202012022410'], ['TV 2 Play', '111399002181'],
+    ['Viaplay', '11111300404'], ['Prime Video', '3201910019365'], ['Spotify', '3201606009684'],
+    ['Stremio', '3202306031311'], ['SkyShowtime', '3202208028071'], ['Apple TV', '3201807016597']
+  ];
+  var $ = function (id) { return document.getElementById(id); };
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+                del: function (k) { try { localStorage.removeItem(k); } catch (e) {} } };
+
+  var toastTimer;
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.className = ''; clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.className = 'hidden'; }, 2500); }
+
+  /* ---- PIN ---- */
+  function sha256(text) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function show() { $('lock').className = 'hidden'; $('app').className = ''; }
+  function tryPin() {
+    sha256(SALT + $('pin').value.trim()).then(function (h) {
+      if (h === PIN_HASH) { store.set('unlocked', PIN_HASH); show(); }
+      else { $('pinErr').className = 'err'; $('pin').value = ''; }
+    });
+  }
+  $('unlock').onclick = tryPin;
+  $('pin').addEventListener('keydown', function (e) { if (e.key === 'Enter') tryPin(); });
+  $('forget').onclick = function (e) { e.preventDefault(); store.del('unlocked'); location.reload(); };
+  if (store.get('unlocked') === PIN_HASH) show();
+
+  /* ---- opening apps: a plain request to the TV, no pairing needed ---- */
+  $('trustLink').href = 'https://' + TV + ':8002/api/v2/';
+  function launch(id, name) {
+    fetch('https://' + TV + ':8002/api/v2/applications/' + id, { method: 'POST', mode: 'no-cors' })
+      .then(function () { $('trust').className = 'note hidden'; toast('Opening ' + name); })
+      .catch(function () { $('trust').className = 'note'; toast('Could not reach the TV'); });
+  }
+  $('home').onclick = function () { launch(LAUNCHER, 'home screen'); };
+  APPS.forEach(function (a) {
+    var b = document.createElement('button'); b.textContent = a[0]; b.onclick = function () { launch(a[1], a[0]); }; $('apps').appendChild(b);
+  });
+
+  /* ---- remote keys: the TV's remote-control channel (asks "Allow?" on the TV once per phone) ---- */
+  var ws = null, queue = [];
+  function note(msg) { var n = $('remoteNote'); n.textContent = msg; n.className = msg ? '' : 'hidden'; }
+  function connect() {
+    if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
+    var token = store.get('tvToken');
+    var url = 'wss://' + TV + ':8002/api/v2/channels/samsung.remote.control?name=' + btoa('Phone remote') + (token ? '&token=' + token : '');
+    try { ws = new WebSocket(url); } catch (e) { note('This browser blocked the connection to the TV.'); return; }
+    ws.onmessage = function (e) {
+      var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.event === 'ms.channel.connect') {
+        if (m.data && m.data.token) store.set('tvToken', m.data.token);
+        note(''); queue.splice(0).forEach(sendKey);
+      } else if (m.event === 'ms.channel.unauthorized') { store.del('tvToken'); note('The TV refused this phone. Choose "Allow" on the TV and try again.'); }
+      else if (m.event === 'ms.channel.timeOut') { note('Nobody answered the "Allow" question on the TV. Try again and choose Allow.'); }
+    };
+    ws.onerror = function () { queue = []; note('Remote buttons could not connect. App buttons may still work. If they do not either, use the certificate step above.'); };
+    ws.onclose = function () { ws = null; };
+    if (!token) note('Look at the TV and choose "Allow" for "Phone remote".');
+  }
+  function sendKey(key) {
+    if (!ws || ws.readyState !== 1) { queue.push(key); connect(); return; }
+    ws.send(JSON.stringify({ method: 'ms.remote.control', params: { Cmd: 'Click', DataOfCmd: key, Option: 'false', TypeOfRemote: 'SendRemoteKey' } }));
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-key]'), function (b) {
+    b.onclick = function () { sendKey(b.getAttribute('data-key')); };
+  });
+})();
+</script>
+</body>
+</html>
