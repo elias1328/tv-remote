@@ -4,33 +4,104 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TV">
-<meta name="theme-color" content="#0f1115">
+<meta name="theme-color" content="#0b0c10">
 <meta name="robots" content="noindex">
 <title>TV Remote</title>
 <link rel="apple-touch-icon" href="icon.png">
 <style>
-  :root { --bg:#0f1115; --card:#1b1e26; --card2:#262a35; --text:#f2f3f5; --dim:#9aa0ac; --accent:#4c8dff; --ok:#34c759; --bad:#ff6b6b; }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.4 -apple-system, system-ui, "Segoe UI", sans-serif; }
-  body { padding: calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 28px); max-width: 520px; margin: 0 auto; }
-  h1 { font-size: 26px; margin: 0 0 4px; } h2 { font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin: 26px 0 10px; }
-  p { color: var(--dim); margin: 6px 0 14px; }
-  button { font: inherit; color: var(--text); background: var(--card); border: 0; border-radius: 16px; padding: 16px 10px; touch-action: manipulation; }
-  button:active { background: var(--card2); transform: scale(.97); }
+  :root { --bg:#0b0c10; --card:#1a1c23; --card2:#272a33; --pad:#16181e; --text:#f2f3f5; --dim:#8b909c; --accent:#4c8dff; --ok:#34c759; --bad:#ff6b6b; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--bg); color: var(--text);
+    font: 17px/1.4 -apple-system, system-ui, "Segoe UI", sans-serif; }
+  body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 10px) 18px 0; }
+  button { font: inherit; color: var(--text); background: var(--card); border: 0; border-radius: 16px; padding: 14px 10px; touch-action: manipulation; }
+  button:active, button.down { background: var(--card2); transform: scale(.95); }
+  svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; pointer-events: none; }
   .hidden { display: none !important; }
-  .primary { background: var(--accent); width: 100%; font-weight: 600; font-size: 19px; padding: 18px; }
+  input { -webkit-user-select: text; user-select: text; }
+
+  /* lock */
+  #lock { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-bottom: 30vh; }
+  #lock h1 { font-size: 28px; margin: 0 0 4px; } #lock p { color: var(--dim); margin: 4px 0 16px; }
+  #pin { width: 100%; font: 600 30px/1 inherit; letter-spacing: .4em; text-align: center; padding: 16px; border-radius: 16px;
+    border: 2px solid var(--card2); background: var(--card); color: var(--text); margin-bottom: 12px; }
+  .primary { background: var(--accent); width: 100%; font-weight: 600; font-size: 18px; padding: 16px; }
+  .err { color: var(--bad); }
+
+  /* main */
+  #app { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  header { display: flex; align-items: center; gap: 10px; height: 48px; flex: none; }
+  header h1 { font-size: 22px; margin: 0; flex: 1; }
+  #dot { width: 9px; height: 9px; border-radius: 5px; background: #555; display: inline-block; margin-left: 8px; vertical-align: middle; transition: background .3s; }
+  #dot.on { background: var(--ok); }
+  #power { width: 44px; height: 44px; border-radius: 22px; padding: 0; color: var(--bad); position: relative; }
+  #power svg { width: 22px; height: 22px; }
+  #power.arming::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 3px solid var(--bad); animation: arm .6s linear; }
+  @keyframes arm { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+  .view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #note { min-height: 22px; font-size: 14px; color: var(--dim); text-align: center; margin: 2px 0 6px; }
+
+  #pad { flex: 1; min-height: 220px; max-height: 560px; border-radius: 30px; background: var(--pad); position: relative; overflow: hidden;
+    touch-action: none; border: 1px solid #ffffff10; }
+  #padHint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+    color: #ffffff38; font-size: 15px; line-height: 1.6; pointer-events: none; transition: opacity .6s; }
+  #touch { position: absolute; width: 74px; height: 74px; margin: -37px 0 0 -37px; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff30, #ffffff08 70%, transparent); pointer-events: none; opacity: 0; transition: opacity .15s; }
+  #touch.on { opacity: 1; }
+  .flash { position: absolute; background: #ffffff1c; pointer-events: none; opacity: 0; transition: opacity .35s; }
+  .flash.on { opacity: 1; transition: none; }
+  #fUP { left: 0; right: 0; top: 0; height: 30%; background: linear-gradient(#ffffff26, transparent); }
+  #fDOWN { left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(transparent, #ffffff26); }
+  #fLEFT { top: 0; bottom: 0; left: 0; width: 30%; background: linear-gradient(90deg, #ffffff26, transparent); }
+  #fRIGHT { top: 0; bottom: 0; right: 0; width: 30%; background: linear-gradient(90deg, transparent, #ffffff26); }
+  #fENTER { inset: 0; background: radial-gradient(circle, #ffffff22, transparent 60%); }
+
+  /* d-pad mode */
+  #dpad { flex: 1; min-height: 220px; max-height: 420px; display: grid; place-items: center; }
+  #dpadRing { width: min(78vw, 300px); aspect-ratio: 1; border-radius: 50%; background: var(--pad); position: relative; border: 1px solid #ffffff10; }
+  #dpadRing button { position: absolute; background: transparent; border-radius: 50%; width: 33%; height: 33%; padding: 0; color: #ffffffb0; }
+  #dpadRing button:active, #dpadRing button.down { background: #ffffff14; }
+  #dpadRing .ok { left: 33.5%; top: 33.5%; background: var(--card2); font-weight: 700; font-size: 17px; color: var(--text); }
+  #dpadRing .u { left: 33.5%; top: 1%; } #dpadRing .d { left: 33.5%; bottom: 1%; }
+  #dpadRing .l { left: 1%; top: 33.5%; } #dpadRing .r { right: 1%; top: 33.5%; }
+
+  #btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 18px 6px 10px; flex: none; justify-items: center; }
+  .round { width: 66px; height: 66px; border-radius: 33px; padding: 0; }
+  .vol { grid-row: span 2; width: 66px; height: 146px; border-radius: 33px; padding: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--card); }
+  .vol button { flex: 1; background: transparent; border-radius: 0; padding: 0; width: 100%; }
+  .vol button:active, .vol button.down { background: var(--card2); transform: none; }
+
+  /* apps view */
+  #appsView { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
+  h2 { font-size: 13px; letter-spacing: .07em; text-transform: uppercase; color: var(--dim); margin: 22px 0 10px; }
   .apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .apps button { min-height: 64px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
-  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 320px; margin: 0 auto; }
-  .pad button { height: 72px; font-size: 24px; } .pad .okbtn { background: var(--card2); font-size: 18px; font-weight: 700; }
-  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; } .row button { font-size: 15px; padding: 14px 4px; }
-  #pin { width: 100%; font: 600 30px/1 inherit; letter-spacing: .4em; text-align: center; padding: 16px; border-radius: 16px; border: 2px solid var(--card2); background: var(--card); color: var(--text); margin-bottom: 12px; }
-  #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%); background: #000c; border: 1px solid #fff3; padding: 10px 18px; border-radius: 14px; font-size: 15px; max-width: 90%; text-align: center; }
-  .note { background: var(--card); border-radius: 16px; padding: 14px 16px; margin-top: 14px; } .note p { margin: 4px 0 10px; }
-  .note a { color: var(--accent); font-weight: 600; } .err { color: var(--bad); }
-  small { color: var(--dim); display: block; margin-top: 22px; text-align: center; }
+  .apps button { min-height: 62px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+  .list button { width: 100%; text-align: left; padding: 15px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .list button span { color: var(--dim); }
+  .note { background: var(--card); border-radius: 16px; padding: 14px 16px; margin-top: 12px; } .note p { margin: 4px 0 8px; color: var(--dim); }
+  .note a { color: var(--accent); font-weight: 600; }
+
+  nav { display: flex; flex: none; border-top: 1px solid #ffffff14; margin: 0 -18px; padding: 6px 18px calc(env(safe-area-inset-bottom) + 6px); background: var(--bg); }
+  nav button { flex: 1; background: transparent; color: var(--dim); font-size: 12px; padding: 6px 0 2px; border-radius: 10px; }
+  nav button svg { width: 24px; height: 24px; margin-bottom: 2px; }
+  nav button.sel { color: var(--accent); }
+  nav button:active { transform: none; }
+
+  /* keyboard sheet */
+  #kb { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top) + 14px) 18px 16px; background: #15171ef2;
+    border-bottom: 1px solid #ffffff1a; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); z-index: 5; }
+  #kb .row { display: flex; gap: 8px; max-width: 480px; margin: 0 auto; }
+  #kbText { flex: 1; font: inherit; padding: 13px 14px; border-radius: 14px; border: 0; background: var(--card2); color: var(--text); min-width: 0; }
+  #kb p { max-width: 480px; margin: 8px auto 0; font-size: 13px; color: var(--dim); }
+
+  #toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 58px); transform: translateX(-50%); background: #000d; border: 1px solid #fff3;
+    padding: 9px 16px; border-radius: 14px; font-size: 15px; max-width: 90%; text-align: center; z-index: 6; pointer-events: none; }
+  #hap { position: absolute; left: -9999px; top: 0; opacity: 0; }
 </style>
 </head>
 <body>
@@ -44,112 +115,262 @@
 </div>
 
 <div id="app" class="hidden">
-  <h1>TV Remote</h1>
-  <button class="primary" id="home" style="margin-top:12px">Open home screen</button>
-  <p style="margin-top:10px;font-size:15px">Tip: on the TV remote, the <b>Samsung TV Plus</b> button also takes you back to the home screen.</p>
+  <header>
+    <h1>Klorian<span id="dot"></span></h1>
+    <button id="power" aria-label="Hold to turn the TV off"><svg viewBox="0 0 24 24"><path d="M12 3v9M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></button>
+  </header>
 
-  <div id="trust" class="note hidden">
-    <b>This phone can't reach the TV yet.</b>
-    <p>Check you're on the home Wi-Fi. The first time on each phone, the TV's security certificate must be accepted once:</p>
-    <p>1. <a id="trustLink" target="_blank" rel="noopener">Open this TV address</a><br>2. Tap <b>Show Details</b>, then <b>visit this website</b>, and confirm.<br>3. Come back here and try again.</p>
+  <!-- remote -->
+  <div class="view" id="remoteView">
+    <div id="note"></div>
+    <div id="pad">
+      <div class="flash" id="fUP"></div><div class="flash" id="fDOWN"></div><div class="flash" id="fLEFT"></div><div class="flash" id="fRIGHT"></div><div class="flash" id="fENTER"></div>
+      <div id="padHint">Swipe to move<br>Tap to select<br>Hold near the edge to keep moving</div>
+      <div id="touch"></div>
+    </div>
+    <div id="dpad" class="hidden"><div id="dpadRing">
+      <button class="u" data-key="KEY_UP"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+      <button class="l" data-key="KEY_LEFT"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button class="ok" data-key="KEY_ENTER">OK</button>
+      <button class="r" data-key="KEY_RIGHT"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="d" data-key="KEY_DOWN"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div></div>
+    <div id="btns">
+      <button class="round" data-key="KEY_RETURN" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg></button>
+      <button class="round" id="homeBtn" aria-label="Home (hold for Samsung menu)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg></button>
+      <button class="round" id="kbBtn" aria-label="Keyboard"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></button>
+      <div class="vol"><button data-key="KEY_VOLUP" data-repeat aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></button><button data-key="KEY_VOLDOWN" data-repeat aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button></div>
+      <button class="round" id="playBtn" aria-label="Play or pause"><svg viewBox="0 0 24 24"><path d="M4 6l7 6-7 6z" fill="currentColor"/><path d="M15 6v12M20 6v12"/></svg></button>
+      <button class="round" data-key="KEY_MUTE" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg></button>
+      <button class="round" data-key="KEY_REWIND" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6zM20 6l-7 6 7 6z" fill="currentColor"/></svg></button>
+    </div>
   </div>
 
-  <h2>Apps</h2>
-  <div class="apps" id="apps"></div>
+  <!-- apps -->
+  <div class="view hidden" id="appsView">
+    <button class="primary" id="home" style="margin-top:6px">Open home screen</button>
+    <div id="trust" class="note hidden">
+      <b>This phone can't reach the TV yet.</b>
+      <p>Check you're on the home Wi-Fi. The first time on each phone, accept the TV's certificate once:</p>
+      <p>1. <a id="trustLink" target="_blank" rel="noopener">Open this TV address</a><br>2. Tap <b>Show Details</b>, then <b>visit this website</b>.<br>3. Come back here and try again.</p>
+    </div>
+    <h2>Apps</h2>
+    <div class="apps" id="apps"></div>
+    <h2>More</h2>
+    <div class="list">
+      <button data-key="KEY_HOME">Samsung menu <span>also: hold the TV button</span></button>
+      <button data-key="KEY_SOURCE">Input source <span>HDMI, TV</span></button>
+      <button data-key="KEY_FF">Fast forward <span>&#9654;&#9654;</span></button>
+      <button id="modeBtn">Arrows <span id="modeLabel">Swipe pad</span></button>
+      <button id="forget">Lock this phone <span>asks for the PIN again</span></button>
+    </div>
+    <p style="color:var(--dim);font-size:14px;margin-top:14px">Works only on the home Wi-Fi. On the TV remote, the Samsung TV Plus button also takes you back to the home screen.</p>
+  </div>
 
-  <h2>Remote</h2>
-  <div class="pad">
-    <button data-key="KEY_RETURN" style="font-size:15px">Back</button><button data-key="KEY_UP">&#9650;</button><button data-key="KEY_HOME" style="font-size:15px">Samsung</button>
-    <button data-key="KEY_LEFT">&#9664;</button><button data-key="KEY_ENTER" class="okbtn">OK</button><button data-key="KEY_RIGHT">&#9654;</button>
-    <button data-key="KEY_VOLDOWN" style="font-size:15px">Vol &minus;</button><button data-key="KEY_DOWN">&#9660;</button><button data-key="KEY_VOLUP" style="font-size:15px">Vol +</button>
-  </div>
-  <div class="row">
-    <button data-key="KEY_MUTE">Mute</button><button data-key="KEY_PLAY">Play</button><button data-key="KEY_PAUSE">Pause</button><button data-key="KEY_POWER">Power</button>
-  </div>
-  <p id="remoteNote" class="hidden" style="margin-top:12px"></p>
-  <small>Works only on the home Wi-Fi. <a href="#" id="forget" style="color:inherit">Lock this phone</a></small>
+  <nav>
+    <button id="tabRemote" class="sel"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="5"/><circle cx="12" cy="8" r="2"/></svg>Remote</button>
+    <button id="tabApps"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Apps</button>
+  </nav>
 </div>
 
+<div id="kb" class="hidden">
+  <form class="row" id="kbForm"><input id="kbText" type="text" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type, then press Send"><button type="submit" style="background:var(--accent);font-weight:600">Send</button><button type="button" id="kbClose">&times;</button></form>
+  <p>Sends the text to the search or text box that is open on the TV.</p>
+</div>
 <div id="toast" class="hidden"></div>
+<label id="hap"><input type="checkbox" switch></label>
 
 <script>
-(function () {
+(() => {
   'use strict';
-  var TV = '192.168.10.64';
-  var PIN_HASH = '6ca63ff22b5bffd0b86b851c265e981b58a003ade3937643683d764b0b8212ce';   // SHA-256 of salt + PIN
-  var SALT = 'klorian-remote:';
-  var LAUNCHER = 'cALmHoMe01.CalmHome';
-  var APPS = [
+  const TV = '192.168.10.64';
+  const PIN_HASH = '6ca63ff22b5bffd0b86b851c265e981b58a003ade3937643683d764b0b8212ce';   // SHA-256 of salt + PIN
+  const SALT = 'klorian-remote:';
+  const LAUNCHER = 'cALmHoMe01.CalmHome';
+  const APPS = [
     ['Netflix', '3201907018807'], ['YouTube', '111299001912'], ['Disney+', '3201901017640'],
     ['HBO Max', '3202301029760'], ['NRK TV', '3202012022410'], ['TV 2 Play', '111399002181'],
     ['Viaplay', '11111300404'], ['Prime Video', '3201910019365'], ['Spotify', '3201606009684'],
     ['Stremio', '3202306031311'], ['SkyShowtime', '3202208028071'], ['Apple TV', '3201807016597']
   ];
-  var $ = function (id) { return document.getElementById(id); };
-  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-                set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
-                del: function (k) { try { localStorage.removeItem(k); } catch (e) {} } };
+  const $ = id => document.getElementById(id);
+  const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                  set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
+                  del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
 
-  var toastTimer;
-  function toast(msg) { var t = $('toast'); t.textContent = msg; t.className = ''; clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.className = 'hidden'; }, 2500); }
+  let toastTimer;
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.className = ''; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = 'hidden', 2200); }
+  // Haptic tick: tapping an iOS 18 "switch" checkbox makes Safari vibrate; elsewhere use navigator.vibrate.
+  const hapLabel = $('hap');
+  function haptic() { try { if (navigator.vibrate) navigator.vibrate(8); else hapLabel.click(); } catch (e) {} }
 
   /* ---- PIN ---- */
-  function sha256(text) {
-    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
-      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
-    });
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
   }
-  function show() { $('lock').className = 'hidden'; $('app').className = ''; }
-  function tryPin() {
-    sha256(SALT + $('pin').value.trim()).then(function (h) {
-      if (h === PIN_HASH) { store.set('unlocked', PIN_HASH); show(); }
-      else { $('pinErr').className = 'err'; $('pin').value = ''; }
-    });
+  function show() { $('lock').className = 'hidden'; $('app').className = ''; connect(); }
+  async function tryPin() {
+    if (await sha256(SALT + $('pin').value.trim()) === PIN_HASH) { store.set('unlocked', PIN_HASH); show(); }
+    else { $('pinErr').className = 'err'; $('pin').value = ''; }
   }
   $('unlock').onclick = tryPin;
-  $('pin').addEventListener('keydown', function (e) { if (e.key === 'Enter') tryPin(); });
-  $('forget').onclick = function (e) { e.preventDefault(); store.del('unlocked'); location.reload(); };
-  if (store.get('unlocked') === PIN_HASH) show();
+  $('pin').addEventListener('keydown', e => { if (e.key === 'Enter') tryPin(); });
+  $('forget').onclick = () => { store.del('unlocked'); location.reload(); };
+
+  /* ---- tabs and settings ---- */
+  function tab(name) {
+    $('remoteView').classList.toggle('hidden', name !== 'remote'); $('appsView').classList.toggle('hidden', name !== 'apps');
+    $('tabRemote').classList.toggle('sel', name === 'remote'); $('tabApps').classList.toggle('sel', name === 'apps');
+  }
+  $('tabRemote').onclick = () => tab('remote'); $('tabApps').onclick = () => tab('apps');
+  function setMode(m) {
+    store.set('mode', m); $('pad').classList.toggle('hidden', m !== 'swipe'); $('dpad').classList.toggle('hidden', m === 'swipe');
+    $('modeLabel').textContent = m === 'swipe' ? 'Swipe pad' : 'Buttons';
+  }
+  setMode(store.get('mode') || 'swipe');
+  $('modeBtn').onclick = () => { setMode(store.get('mode') === 'swipe' ? 'buttons' : 'swipe'); toast('Arrows: ' + $('modeLabel').textContent); };
+  if (store.get('padUsed')) $('padHint').style.opacity = 0;
 
   /* ---- opening apps: a plain request to the TV, no pairing needed ---- */
   $('trustLink').href = 'https://' + TV + ':8002/api/v2/';
   function launch(id, name) {
     fetch('https://' + TV + ':8002/api/v2/applications/' + id, { method: 'POST', mode: 'no-cors' })
-      .then(function () { $('trust').className = 'note hidden'; toast('Opening ' + name); })
-      .catch(function () { $('trust').className = 'note'; toast('Could not reach the TV'); });
+      .then(() => { $('trust').className = 'note hidden'; toast('Opening ' + name); })
+      .catch(() => { $('trust').className = 'note'; tab('apps'); toast('Could not reach the TV'); });
   }
-  $('home').onclick = function () { launch(LAUNCHER, 'home screen'); };
-  APPS.forEach(function (a) {
-    var b = document.createElement('button'); b.textContent = a[0]; b.onclick = function () { launch(a[1], a[0]); }; $('apps').appendChild(b);
-  });
+  $('home').onclick = () => { haptic(); launch(LAUNCHER, 'home screen'); tab('remote'); };
+  for (const [name, id] of APPS) {
+    const b = document.createElement('button'); b.textContent = name;
+    b.onclick = () => { haptic(); launch(id, name); tab('remote'); }; $('apps').appendChild(b);
+  }
 
   /* ---- remote keys: the TV's remote-control channel (asks "Allow?" on the TV once per phone) ---- */
-  var ws = null, queue = [];
-  function note(msg) { var n = $('remoteNote'); n.textContent = msg; n.className = msg ? '' : 'hidden'; }
+  let ws = null, queue = [];
+  function note(msg) { $('note').textContent = msg || ''; }
+  function online(on) { $('dot').classList.toggle('on', on); }
   function connect() {
-    if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
-    var token = store.get('tvToken');
-    var url = 'wss://' + TV + ':8002/api/v2/channels/samsung.remote.control?name=' + btoa('Phone remote') + (token ? '&token=' + token : '');
+    if (ws && ws.readyState <= 1) return;
+    const token = store.get('tvToken');
+    const url = 'wss://' + TV + ':8002/api/v2/channels/samsung.remote.control?name=' + btoa('Phone remote') + (token ? '&token=' + token : '');
     try { ws = new WebSocket(url); } catch (e) { note('This browser blocked the connection to the TV.'); return; }
-    ws.onmessage = function (e) {
-      var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+    ws.onmessage = e => {
+      let m; try { m = JSON.parse(e.data); } catch (x) { return; }
       if (m.event === 'ms.channel.connect') {
         if (m.data && m.data.token) store.set('tvToken', m.data.token);
-        note(''); queue.splice(0).forEach(sendKey);
-      } else if (m.event === 'ms.channel.unauthorized') { store.del('tvToken'); note('The TV refused this phone. Choose "Allow" on the TV and try again.'); }
-      else if (m.event === 'ms.channel.timeOut') { note('Nobody answered the "Allow" question on the TV. Try again and choose Allow.'); }
+        online(true); note(''); queue.splice(0).forEach(sendRaw);
+      } else if (m.event === 'ms.channel.unauthorized') { store.del('tvToken'); online(false); note('The TV refused this phone. Choose "Allow" on the TV.'); }
+      else if (m.event === 'ms.channel.timeOut') { online(false); note('Nobody answered "Allow" on the TV. Tap again.'); }
+      else if (m.event === 'ms.remote.imeStart') { openKb(true); }
+      else if (m.event === 'ms.remote.imeEnd') { closeKb(); }
     };
-    ws.onerror = function () { queue = []; note('Remote buttons could not connect. App buttons may still work. If they do not either, use the certificate step above.'); };
-    ws.onclose = function () { ws = null; };
+    ws.onerror = () => { queue = []; online(false); note('Can\'t reach the TV. Is it on, and are you on the home Wi-Fi?'); };
+    ws.onclose = () => { ws = null; online(false); };
     if (!token) note('Look at the TV and choose "Allow" for "Phone remote".');
   }
-  function sendKey(key) {
-    if (!ws || ws.readyState !== 1) { queue.push(key); connect(); return; }
-    ws.send(JSON.stringify({ method: 'ms.remote.control', params: { Cmd: 'Click', DataOfCmd: key, Option: 'false', TypeOfRemote: 'SendRemoteKey' } }));
+  function sendRaw(msg) {
+    if (!ws || ws.readyState !== 1) { if (queue.length < 6) queue.push(msg); connect(); return; }
+    ws.send(msg);
   }
-  Array.prototype.forEach.call(document.querySelectorAll('[data-key]'), function (b) {
-    b.onclick = function () { sendKey(b.getAttribute('data-key')); };
+  function sendKey(key) {
+    sendRaw(JSON.stringify({ method: 'ms.remote.control', params: { Cmd: 'Click', DataOfCmd: key, Option: 'false', TypeOfRemote: 'SendRemoteKey' } }));
+  }
+  // iOS drops the connection when Safari is in the background; reconnect when the page comes back.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && $('lock').className === 'hidden') connect(); });
+
+  /* ---- buttons: tap sends once; volume repeats while held ---- */
+  function press(el, onTap, onHold, holdMs) {
+    let timer = null, rep = null, held = false;
+    const end = () => { clearTimeout(timer); clearInterval(rep); timer = rep = null; el.classList.remove('down'); };
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault(); held = false; el.classList.add('down');
+      if (onHold) timer = setTimeout(() => { held = true; onHold(); }, holdMs || 550);
+      else onTap();
+    });
+    el.addEventListener('pointerup', () => { if (onHold && !held && timer) onTap(); end(); });
+    el.addEventListener('pointercancel', end); el.addEventListener('pointerleave', end);
+    el.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  document.querySelectorAll('[data-key]').forEach(b => {
+    const key = b.dataset.key;
+    if ('repeat' in b.dataset) {
+      let rep = null;
+      press(b, () => {}, null);
+      b.addEventListener('pointerdown', () => { haptic(); sendKey(key); clearInterval(rep); rep = setTimeout(function go() { sendKey(key); rep = setTimeout(go, 140); }, 450); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, () => clearTimeout(rep)));
+    } else press(b, () => { haptic(); sendKey(key); });
   });
+  // TV button: tap = our home screen, hold = Samsung's own menu
+  press($('homeBtn'), () => { haptic(); launch(LAUNCHER, 'home screen'); }, () => { haptic(); sendKey('KEY_HOME'); toast('Samsung menu'); });
+  // Play/pause toggles between the two keys
+  let paused = false;
+  press($('playBtn'), () => { haptic(); sendKey(paused ? 'KEY_PLAY' : 'KEY_PAUSE'); paused = !paused; });
+  // Power needs a hold so it isn't pressed by accident
+  press($('power'), () => toast('Hold to turn the TV off'), () => { haptic(); sendKey('KEY_POWER'); $('power').classList.remove('arming'); toast('Power'); }, 600);
+  $('power').addEventListener('pointerdown', () => $('power').classList.add('arming'));
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('power').addEventListener(ev, () => $('power').classList.remove('arming')));
+
+  /* ---- swipe pad ---- */
+  const pad = $('pad'), dotEl = $('touch');
+  let st = null, edgeTimer = null;
+  function flash(dir) { const f = $('f' + dir); f.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on'))); }
+  function step(dir) { sendKey('KEY_' + dir); haptic(); flash(dir); if (st) { st.dir = dir; st.steps++; } }
+  function stopEdge() { clearTimeout(edgeTimer); edgeTimer = null; }
+  function place(e) { const r = pad.getBoundingClientRect(); dotEl.style.left = (e.clientX - r.left) + 'px'; dotEl.style.top = (e.clientY - r.top) + 'px'; return r; }
+  pad.addEventListener('pointerdown', e => {
+    e.preventDefault(); try { pad.setPointerCapture(e.pointerId); } catch (x) {}
+    st = { x: e.clientX, y: e.clientY, ax: e.clientX, ay: e.clientY, t: Date.now(), moved: false, dir: null, steps: 0 };
+    place(e); dotEl.classList.add('on');
+    if (!store.get('padUsed')) { store.set('padUsed', '1'); $('padHint').style.opacity = 0; }
+  });
+  pad.addEventListener('pointermove', e => {
+    if (!st) return;
+    const r = place(e);
+    const STEP = Math.max(38, r.width * 0.14);
+    const dx = e.clientX - st.ax, dy = e.clientY - st.ay;
+    if (Math.abs(dx) >= STEP && Math.abs(dx) > Math.abs(dy)) { step(dx > 0 ? 'RIGHT' : 'LEFT'); st.ax = e.clientX; st.ay = e.clientY; }
+    else if (Math.abs(dy) >= STEP && Math.abs(dy) >= Math.abs(dx)) { step(dy > 0 ? 'DOWN' : 'UP'); st.ax = e.clientX; st.ay = e.clientY; }
+    if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 12) st.moved = true;
+    // Holding the finger near the edge in the direction of travel keeps moving, like the Apple TV remote.
+    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+    const atEdge = st.dir && ((st.dir === 'LEFT' && px < .16) || (st.dir === 'RIGHT' && px > .84) || (st.dir === 'UP' && py < .16) || (st.dir === 'DOWN' && py > .84));
+    if (atEdge && !edgeTimer) edgeTimer = setTimeout(function go() { if (!st) return; step(st.dir); edgeTimer = setTimeout(go, 170); }, 380);
+    else if (!atEdge) stopEdge();
+  });
+  function padEnd(e, cancelled) {
+    stopEdge(); dotEl.classList.remove('on');
+    if (!st) return;
+    if (!cancelled) {
+      const dx = e.clientX - st.x, dy = e.clientY - st.y, dt = Date.now() - st.t;
+      if (!st.moved && dt < 450) { sendKey('KEY_ENTER'); haptic(); flash('ENTER'); }
+      else if (st.steps === 0 && Math.hypot(dx, dy) > 20 && dt < 400) {   // short flick
+        step(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'RIGHT' : 'LEFT') : (dy > 0 ? 'DOWN' : 'UP'));
+      }
+    }
+    st = null;
+  }
+  pad.addEventListener('pointerup', e => padEnd(e, false));
+  pad.addEventListener('pointercancel', e => padEnd(e, true));
+
+  /* ---- typing from the phone ---- */
+  function openKb(fromTv) {
+    $('kb').className = '';
+    if (fromTv) toast('The TV wants text: tap the box above');
+    else setTimeout(() => $('kbText').focus(), 30);
+  }
+  function closeKb() { $('kb').className = 'hidden'; $('kbText').blur(); $('kbText').value = ''; }
+  $('kbBtn').addEventListener('click', () => { haptic(); openKb(false); });
+  $('kbClose').onclick = closeKb;
+  $('kbForm').onsubmit = e => {
+    e.preventDefault();
+    const text = $('kbText').value; if (!text) return;
+    const b64 = btoa(unescape(encodeURIComponent(text)));
+    sendRaw(JSON.stringify({ method: 'ms.remote.control', params: { Cmd: b64, DataOfCmd: 'base64', TypeOfRemote: 'SendInputString' } }));
+    sendRaw(JSON.stringify({ method: 'ms.remote.control', params: { TypeOfRemote: 'SendInputEnd' } }));
+    haptic(); toast('Sent'); closeKb();
+  };
+
+  if (store.get('unlocked') === PIN_HASH) show();
 })();
 </script>
 </body>
