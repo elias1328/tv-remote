@@ -246,12 +246,12 @@
   }
 
   /* ---- remote keys: the TV's remote-control channel (asks "Allow?" on the TV once per phone) ---- */
-  let ws = null, queue = [];
+  let ws = null, queue = [], fails = 0, retryTimer = null;
   function note(msg) { $('note').textContent = msg || ''; }
   function online(on) { $('dot').classList.toggle('on', on); }
   // Safari forgets the accepted TV certificate when it is closed, so offer the fix right here.
   function trustNote() {
-    const n = $('note'); n.textContent = 'Can\'t reach the TV. ';
+    const n = $('note'); n.textContent = 'Still trying to reach the TV (it can take 2 minutes after a power cut). If it never connects: ';
     const a = document.createElement('a'); a.href = 'https://' + TV + ':8002/api/v2/'; a.target = '_blank'; a.rel = 'noopener';
     a.textContent = 'Tap here, choose Show Details → visit this website, then come back.'; a.style.color = 'var(--accent)'; a.style.fontWeight = '600';
     n.appendChild(a);
@@ -266,14 +266,22 @@
       let m; try { m = JSON.parse(e.data); } catch (x) { return; }
       if (m.event === 'ms.channel.connect') {
         if (m.data && m.data.token) store.set('tvToken', m.data.token);
-        online(true); note(''); queue.splice(0).forEach(sendRaw);
+        fails = 0; online(true); note(''); queue.splice(0).forEach(sendRaw);
       } else if (m.event === 'ms.channel.unauthorized') { store.del('tvToken'); online(false); note('The TV refused this phone. Choose "Allow" on the TV.'); }
       else if (m.event === 'ms.channel.timeOut') { online(false); note('Nobody answered "Allow" on the TV. Tap again.'); }
       else if (m.event === 'ms.remote.imeStart') { openKb(true); }
       else if (m.event === 'ms.remote.imeEnd') { closeKb(); }
     };
-    ws.onerror = () => { queue = []; online(false); trustNote(); };
-    ws.onclose = () => { ws = null; online(false); };
+    ws.onerror = () => { queue = []; online(false); };
+    ws.onclose = () => {
+      ws = null; online(false);
+      // The TV takes a minute or two to start its network services after a cold start, so keep retrying quietly.
+      fails++;
+      if (fails < 4) note('Connecting to the TV…');
+      else trustNote();
+      clearTimeout(retryTimer);
+      if (!document.hidden && fails < 80) retryTimer = setTimeout(connect, 3000);
+    };
     if (!token) note('Look at the TV and choose "Allow" for "Phone remote".');
   }
   function sendRaw(msg) {
@@ -284,7 +292,7 @@
     sendRaw(JSON.stringify({ method: 'ms.remote.control', params: { Cmd: 'Click', DataOfCmd: key, Option: 'false', TypeOfRemote: 'SendRemoteKey' } }));
   }
   // iOS drops the connection when Safari is in the background; reconnect when the page comes back.
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && $('lock').className === 'hidden') connect(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && $('lock').className === 'hidden') { fails = 0; connect(); } });
 
   /* ---- buttons: tap sends once; volume repeats while held ---- */
   function press(el, onTap, onHold, holdMs) {
