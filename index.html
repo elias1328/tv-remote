@@ -44,7 +44,7 @@
   @keyframes arm { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 
   .view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #note { min-height: 22px; font-size: 14px; color: var(--dim); text-align: center; margin: 2px 0 6px; }
+  #note { min-height: 22px; font-size: 14px; -webkit-user-select: text; user-select: text; color: var(--dim); text-align: center; margin: 2px 0 6px; }
 
   #pad { flex: 1; min-height: 220px; max-height: 560px; border-radius: 30px; background: var(--pad); position: relative; overflow: hidden;
     touch-action: none; border: 1px solid #ffffff10; }
@@ -249,6 +249,14 @@
   let ws = null, queue = [];
   function note(msg) { $('note').textContent = msg || ''; }
   function online(on) { $('dot').classList.toggle('on', on); }
+  // Safari forgets the accepted TV certificate when it is closed, so offer the fix right here.
+  function trustNote() {
+    const n = $('note'); n.textContent = 'Can\'t reach the TV. ';
+    const a = document.createElement('a'); a.href = 'https://' + TV + ':8002/api/v2/'; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = 'Tap here, choose Show Details → visit this website, then come back.'; a.style.color = 'var(--accent)'; a.style.fontWeight = '600';
+    n.appendChild(a);
+  }
+  window.addEventListener('focus', () => { if ($('lock').className === 'hidden' && !(ws && ws.readyState === 1)) connect(); });
   function connect() {
     if (ws && ws.readyState <= 1) return;
     const token = store.get('tvToken');
@@ -264,7 +272,7 @@
       else if (m.event === 'ms.remote.imeStart') { openKb(true); }
       else if (m.event === 'ms.remote.imeEnd') { closeKb(); }
     };
-    ws.onerror = () => { queue = []; online(false); note('Can\'t reach the TV. Is it on, and are you on the home Wi-Fi?'); };
+    ws.onerror = () => { queue = []; online(false); trustNote(); };
     ws.onclose = () => { ws = null; online(false); };
     if (!token) note('Look at the TV and choose "Allow" for "Phone remote".');
   }
