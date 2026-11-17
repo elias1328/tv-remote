@@ -77,7 +77,20 @@
   .vol button:active, .vol button.down { background: var(--card2); transform: none; }
 
   /* apps view */
-  #appsView { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
+  .dim { color: var(--dim); font-size: 14px; }
+  .hrow { display: flex; justify-content: space-between; align-items: baseline; }
+  .hrow a { color: var(--accent); text-transform: none; letter-spacing: 0; font-size: 16px; font-weight: 600; text-decoration: none; }
+  .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .nums button { font-size: 20px; font-weight: 600; padding: 15px 4px; }
+  .nums button[data-key^="KEY_CH"], .nums button[data-key="KEY_GUIDE"], .nums button[data-key="KEY_SOURCE"],
+  .nums button[data-key="KEY_PRECH"], .nums button[data-key="KEY_CH_LIST"] { font-size: 15px; background: var(--card2); }
+  .erow { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 14px; padding: 6px 6px 6px 14px; margin-bottom: 8px; }
+  .erow label { flex: 1; display: flex; align-items: center; gap: 12px; font-weight: 600; padding: 8px 0; }
+  .erow input { width: 22px; height: 22px; accent-color: var(--accent); }
+  .erow.off label { color: var(--dim); font-weight: 400; }
+  .erow button { width: 44px; height: 44px; padding: 0; background: var(--card2); border-radius: 12px; font-size: 18px; }
+  .list button span.copy { color: var(--accent); font-weight: 600; }
+  #appsView, #moreView { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
   h2 { font-size: 13px; letter-spacing: .07em; text-transform: uppercase; color: var(--dim); margin: 22px 0 10px; }
   .apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .apps button { min-height: 62px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
@@ -125,7 +138,7 @@
     <div id="note"></div>
     <div id="pad">
       <div class="flash" id="fUP"></div><div class="flash" id="fDOWN"></div><div class="flash" id="fLEFT"></div><div class="flash" id="fRIGHT"></div><div class="flash" id="fENTER"></div>
-      <div id="padHint">Swipe to move<br>Tap to select<br>Hold near the edge to keep moving</div>
+      <div id="padHint">Swipe to move · Tap to select<br>Hold near the edge to keep moving<br>Double-tap left or right edge to skip</div>
       <div id="touch"></div>
     </div>
     <div id="dpad" class="hidden"><div id="dpadRing">
@@ -142,7 +155,7 @@
       <div class="vol"><button data-key="KEY_VOLUP" data-repeat aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></button><button data-key="KEY_VOLDOWN" data-repeat aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button></div>
       <button class="round" id="playBtn" aria-label="Play or pause"><svg viewBox="0 0 24 24"><path d="M4 6l7 6-7 6z" fill="currentColor"/><path d="M15 6v12M20 6v12"/></svg></button>
       <button class="round" data-key="KEY_MUTE" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg></button>
-      <button class="round" data-key="KEY_REWIND" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6zM20 6l-7 6 7 6z" fill="currentColor"/></svg></button>
+      <button class="round" data-key="KEY_MENU" aria-label="TV settings: picture and sound"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button>
     </div>
   </div>
 
@@ -154,22 +167,46 @@
       <p>Check you're on the home Wi-Fi. The first time on each phone, accept the TV's certificate once:</p>
       <p>1. <a id="trustLink" target="_blank" rel="noopener">Open this TV address</a><br>2. Tap <b>Show Details</b>, then <b>visit this website</b>.<br>3. Come back here and try again.</p>
     </div>
-    <h2>Apps</h2>
+    <h2 class="hrow">Apps <a href="#" id="editBtn">Edit</a></h2>
     <div class="apps" id="apps"></div>
-    <h2>More</h2>
+    <div id="editList" class="hidden"><p class="dim">Tick the apps to show and use the arrows to order them. This is saved on this phone only.</p><div id="editRows"></div></div>
+    <p class="dim" style="margin-top:16px">Works only on the home Wi-Fi. On the TV remote, the Samsung TV Plus button also takes you back to the home screen.</p>
+  </div>
+
+  <!-- more -->
+  <div class="view hidden" id="moreView">
+    <h2 style="margin-top:6px">Channels</h2>
+    <div class="nums">
+      <button data-key="KEY_1">1</button><button data-key="KEY_2">2</button><button data-key="KEY_3">3</button><button data-key="KEY_CHUP" data-repeat>CH +</button>
+      <button data-key="KEY_4">4</button><button data-key="KEY_5">5</button><button data-key="KEY_6">6</button><button data-key="KEY_CHDOWN" data-repeat>CH &minus;</button>
+      <button data-key="KEY_7">7</button><button data-key="KEY_8">8</button><button data-key="KEY_9">9</button><button data-key="KEY_GUIDE">Guide</button>
+      <button data-key="KEY_PRECH">Prev</button><button data-key="KEY_0">0</button><button data-key="KEY_CH_LIST">List</button><button data-key="KEY_SOURCE">Source</button>
+    </div>
+    <h2>Picture &amp; sound</h2>
     <div class="list">
+      <button data-key="KEY_MENU">TV settings <span>picture mode, sound mode, sleep timer</span></button>
+      <button data-key="KEY_PMODE">Next picture mode <span>Film, Standard, Dynamic…</span></button>
+      <button data-key="KEY_CAPTION">Subtitles <span>TV channels; streaming apps have their own</span></button>
+      <button data-key="KEY_INFO">Info <span>what's on</span></button>
       <button data-key="KEY_HOME">Samsung menu <span>also: hold the TV button</span></button>
-      <button data-key="KEY_SOURCE">Input source <span>HDMI, TV</span></button>
-      <button data-key="KEY_FF">Fast forward <span>&#9654;&#9654;</span></button>
+    </div>
+    <h2>Siri &amp; home-screen shortcuts</h2>
+    <div class="note" style="margin-top:0">
+      <p style="margin-top:0">Make a shortcut once, then say <b>"Hey Siri, Netflix on TV"</b> or tap it from the home screen. Shortcuts skip the certificate step.</p>
+      <p>1. Tap <b>Copy</b> next to an app below.<br>2. Open the <b>Shortcuts</b> app, tap <b>+</b>, then <b>Add Action</b>, and search for <b>Get Contents of URL</b>.<br>3. Paste the address into it. Tap the arrow &rsaquo; next to it and set <b>Method</b> to <b>POST</b>.<br>4. Name the shortcut (the name is what you say to Siri), for example "Netflix on TV". To get an icon: Share &rarr; <b>Add to Home Screen</b>.</p>
+      <div class="list" id="shortcuts" style="margin-top:12px"></div>
+    </div>
+    <h2>This phone</h2>
+    <div class="list">
       <button id="modeBtn">Arrows <span id="modeLabel">Swipe pad</span></button>
       <button id="forget">Lock this phone <span>asks for the PIN again</span></button>
     </div>
-    <p style="color:var(--dim);font-size:14px;margin-top:14px">Works only on the home Wi-Fi. On the TV remote, the Samsung TV Plus button also takes you back to the home screen.</p>
   </div>
 
   <nav>
     <button id="tabRemote" class="sel"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="5"/><circle cx="12" cy="8" r="2"/></svg>Remote</button>
     <button id="tabApps"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Apps</button>
+    <button id="tabMore"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>More</button>
   </nav>
 </div>
 
@@ -191,8 +228,9 @@
     ['Netflix', '3201907018807'], ['YouTube', '111299001912'], ['Disney+', '3201901017640'],
     ['HBO Max', '3202301029760'], ['NRK TV', '3202012022410'], ['TV 2 Play', '111399002181'],
     ['Viaplay', '11111300404'], ['Prime Video', '3201910019365'], ['Spotify', '3201606009684'],
-    ['Stremio', '3202306031311'], ['SkyShowtime', '3202208028071'], ['Apple TV', '3201807016597']
+    ['Stremio', '3202306031311'], ['Apple TV', '3201807016597'], ['SmartThings', '3202311033054']
   ];
+  const DEFAULT_SHOWN = APPS.slice(0, 10).map(a => a[1]);
   const $ = id => document.getElementById(id);
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
                   set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
@@ -219,11 +257,12 @@
   $('forget').onclick = () => { store.del('unlocked'); location.reload(); };
 
   /* ---- tabs and settings ---- */
+  const TABS = { remote: ['remoteView', 'tabRemote'], apps: ['appsView', 'tabApps'], more: ['moreView', 'tabMore'] };
   function tab(name) {
-    $('remoteView').classList.toggle('hidden', name !== 'remote'); $('appsView').classList.toggle('hidden', name !== 'apps');
-    $('tabRemote').classList.toggle('sel', name === 'remote'); $('tabApps').classList.toggle('sel', name === 'apps');
+    for (const k in TABS) { $(TABS[k][0]).classList.toggle('hidden', k !== name); $(TABS[k][1]).classList.toggle('sel', k === name); }
+    if (name !== 'apps' && editing) toggleEdit();
   }
-  $('tabRemote').onclick = () => tab('remote'); $('tabApps').onclick = () => tab('apps');
+  $('tabRemote').onclick = () => tab('remote'); $('tabApps').onclick = () => tab('apps'); $('tabMore').onclick = () => tab('more');
   function setMode(m) {
     store.set('mode', m); $('pad').classList.toggle('hidden', m !== 'swipe'); $('dpad').classList.toggle('hidden', m === 'swipe');
     $('modeLabel').textContent = m === 'swipe' ? 'Swipe pad' : 'Buttons';
@@ -240,10 +279,69 @@
       .catch(() => { $('trust').className = 'note'; tab('apps'); toast('Could not reach the TV'); });
   }
   $('home').onclick = () => { haptic(); launch(LAUNCHER, 'home screen'); tab('remote'); };
-  for (const [name, id] of APPS) {
-    const b = document.createElement('button'); b.textContent = name;
-    b.onclick = () => { haptic(); launch(id, name); tab('remote'); }; $('apps').appendChild(b);
+  /* ---- app buttons: which and in what order is chosen per phone ---- */
+  const nameOf = id => (APPS.find(a => a[1] === id) || [''])[0];
+  function loadOrder() {
+    let shown; try { shown = JSON.parse(store.get('appOrder')); } catch (e) {}
+    if (!Array.isArray(shown)) shown = DEFAULT_SHOWN.slice();
+    shown = shown.filter(nameOf);
+    const hidden = APPS.map(a => a[1]).filter(id => shown.indexOf(id) < 0);
+    return { shown, hidden };
   }
+  let order = loadOrder(), editing = false;
+  function saveOrder() { store.set('appOrder', JSON.stringify(order.shown)); }
+  function renderApps() {
+    const box = $('apps'); box.innerHTML = '';
+    for (const id of order.shown) {
+      const b = document.createElement('button'); b.textContent = nameOf(id);
+      b.onclick = () => { haptic(); launch(id, nameOf(id)); tab('remote'); }; box.appendChild(b);
+    }
+    if (!order.shown.length) box.innerHTML = '<p class="dim">No apps chosen. Tap Edit.</p>';
+  }
+  function renderEdit() {
+    const rows = $('editRows'); rows.innerHTML = '';
+    const all = order.shown.concat(order.hidden);
+    all.forEach(id => {
+      const on = order.shown.indexOf(id) >= 0;
+      const r = document.createElement('div'); r.className = 'erow' + (on ? '' : ' off');
+      const lab = document.createElement('label'); const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = on;
+      cb.onchange = () => {
+        if (cb.checked) { order.hidden = order.hidden.filter(x => x !== id); order.shown.push(id); }
+        else { order.shown = order.shown.filter(x => x !== id); order.hidden.unshift(id); }
+        saveOrder(); renderEdit(); renderApps();
+      };
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(nameOf(id))); r.appendChild(lab);
+      if (on) {
+        const i = order.shown.indexOf(id);
+        [['↑', -1], ['↓', 1]].forEach(([sym, d]) => {
+          const b = document.createElement('button'); b.textContent = sym; b.disabled = (i + d < 0 || i + d >= order.shown.length);
+          if (b.disabled) b.style.opacity = .3;
+          b.onclick = () => { const s = order.shown; [s[i], s[i + d]] = [s[i + d], s[i]]; saveOrder(); renderEdit(); renderApps(); };
+          r.appendChild(b);
+        });
+      }
+      rows.appendChild(r);
+    });
+  }
+  function toggleEdit() {
+    editing = !editing; $('editBtn').textContent = editing ? 'Done' : 'Edit';
+    $('apps').classList.toggle('hidden', editing); $('editList').classList.toggle('hidden', !editing);
+    if (editing) renderEdit();
+  }
+  $('editBtn').onclick = e => { e.preventDefault(); toggleEdit(); };
+  renderApps();
+
+  /* ---- Siri shortcut addresses (plain http works from the Shortcuts app, no certificate needed) ---- */
+  [['Home screen', LAUNCHER]].concat(APPS).forEach(([name, id]) => {
+    const url = 'http://' + TV + ':8001/api/v2/applications/' + id;
+    const b = document.createElement('button'); b.innerHTML = '<b></b><span class="copy">Copy</span>'; b.firstChild.textContent = name;
+    b.onclick = () => {
+      const ok = () => { haptic(); toast('Copied address for ' + name); };
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, () => prompt('Copy this address:', url));
+      else prompt('Copy this address:', url);
+    };
+    $('shortcuts').appendChild(b);
+  });
 
   /* ---- remote keys: the TV's remote-control channel (asks "Allow?" on the TV once per phone) ---- */
   let ws = null, queue = [], fails = 0, retryTimer = null;
@@ -328,7 +426,7 @@
 
   /* ---- swipe pad ---- */
   const pad = $('pad'), dotEl = $('touch');
-  let st = null, edgeTimer = null;
+  let st = null, edgeTimer = null, pendingTap = null;
   function flash(dir) { const f = $('f' + dir); f.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on'))); }
   function step(dir) { sendKey('KEY_' + dir); haptic(); flash(dir); if (st) { st.dir = dir; st.steps++; } }
   function stopEdge() { clearTimeout(edgeTimer); edgeTimer = null; }
@@ -358,7 +456,19 @@
     if (!st) return;
     if (!cancelled) {
       const dx = e.clientX - st.x, dy = e.clientY - st.y, dt = Date.now() - st.t;
-      if (!st.moved && dt < 450) { sendKey('KEY_ENTER'); haptic(); flash('ENTER'); }
+      if (!st.moved && dt < 450) {
+        // Taps on the outer quarter wait briefly for a second tap (= skip back/forward); centre taps select at once.
+        const r = pad.getBoundingClientRect(), px = (e.clientX - r.left) / r.width;
+        const side = px < .25 ? 'LEFT' : px > .75 ? 'RIGHT' : '';
+        if (!side) { sendKey('KEY_ENTER'); haptic(); flash('ENTER'); }
+        else if (pendingTap && pendingTap.side === side) {
+          clearTimeout(pendingTap.timer); pendingTap = null;
+          sendKey(side === 'LEFT' ? 'KEY_REWIND' : 'KEY_FF'); haptic(); flash(side); toast(side === 'LEFT' ? 'Skip back' : 'Skip forward');
+        } else {
+          if (pendingTap) clearTimeout(pendingTap.timer);
+          pendingTap = { side, timer: setTimeout(() => { pendingTap = null; sendKey('KEY_ENTER'); haptic(); flash('ENTER'); }, 260) };
+        }
+      }
       else if (st.steps === 0 && Math.hypot(dx, dy) > 20 && dt < 400) {   // short flick
         step(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'RIGHT' : 'LEFT') : (dy > 0 ? 'DOWN' : 'UP'));
       }
